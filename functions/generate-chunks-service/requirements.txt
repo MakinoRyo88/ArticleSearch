@@ -1,0 +1,11 @@
+# Cloud Functions Framework
+functions-framework==3.*
+
+# Google Cloudライブラリ
+google-cloud-bigquery==3.*
+google-cloud-aiplatform==1.*
+google-auth==2.*
+
+# その他
+requests==2.*
+beautifulsoup4==4.*

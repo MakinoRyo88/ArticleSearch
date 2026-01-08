@@ -1,0 +1,4 @@
+# Cloud Functions デプロイ設定
+environment_variables:
+  GOOGLE_CLOUD_PROJECT: seo-optimize-464208
+  VERTEX_AI_LOCATION: asia-northeast1

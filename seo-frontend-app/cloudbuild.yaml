@@ -1,0 +1,63 @@
+steps:
+  # 1. ビルド: Dockerイメージをビルド
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'API_BASE_URL=${_API_BASE_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_API_BASE_URL=${_API_BASE_URL}'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/nextjs-apps/seo-frontend-app:$BUILD_ID'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/nextjs-apps/seo-frontend-app:latest'
+      - '.'
+
+  # 2. プッシュ: イメージをArtifact Registryに保存
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'push'
+      - '--all-tags'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/nextjs-apps/seo-frontend-app'
+
+  # 3. デプロイ: Cloud Runにデプロイ
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'seo-frontend-app'
+      - '--image'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/nextjs-apps/seo-frontend-app:$BUILD_ID'
+      - '--region'
+      - 'asia-northeast1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '0'
+      - '--concurrency'
+      - '100'
+      - '--timeout'
+      - '900s'
+      - '--set-env-vars'
+      - 'API_BASE_URL=${_API_BASE_URL},NODE_ENV=production,NEXT_PUBLIC_API_BASE_URL=${_API_BASE_URL}'
+      - '--port'
+      - '8080'
+      - '--execution-environment'
+      - 'gen2'
+
+substitutions:
+  _API_BASE_URL: 'https://seo-realtime-analysis-api-550580509369.asia-northeast1.run.app'
+
+images:
+  - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/nextjs-apps/seo-frontend-app:$BUILD_ID'
+  - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/nextjs-apps/seo-frontend-app:latest'
+
+timeout: '1200s'

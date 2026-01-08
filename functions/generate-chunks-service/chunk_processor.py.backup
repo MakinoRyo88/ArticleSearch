@@ -1,0 +1,150 @@
+import logging
+import re
+from bs4 import BeautifulSoup, NavigableString
+
+logger = logging.getLogger(__name__)
+
+class ChunkProcessor:
+    """HTMLコンテンツを意味のあるチャンクに分割するための高機能プロセッサ"""
+
+    def __init__(self, min_chunk_chars=300, max_chunk_chars=1500, overlap_chars=50):
+        """
+        Args:
+            min_chunk_chars (int): チャンクと見なす最小文字数。
+            max_chunk_chars (int): チャンクの最大目標文字数。
+            overlap_chars (int): チャンク間でオーバーラップさせる文字数。
+        """
+        self.min_chunk_chars = min_chunk_chars
+        self.max_chunk_chars = max_chunk_chars
+        self.overlap_chars = overlap_chars
+        self.heading_tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+
+    def _clean_text(self, text: str) -> str:
+        """不要な空白や改行を削除してテキストを整形する"""
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+
+    def split_into_chunks(self, html_content: str) -> list[dict]:
+        """
+        HTMLコンテンツを階層的な見出しに基づいて意味のあるセクションへ分割し、
+        文字数制約とオーバーラップを適用してチャンクを生成する。
+        """
+        if not html_content:
+            return []
+
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # 1. 見出しタグを基準にHTMLをセクションに分割
+        sections = self._split_by_headings(soup)
+
+        # 2. 各セクションをテキスト化し、短すぎるものを結合
+        text_sections = self._combine_short_sections(sections)
+
+        # 3. 長すぎるセクションをさらに分割
+        split_sections = self._split_long_sections(text_sections)
+        
+        # 4. チャンクにオーバーラップを追加
+        final_chunks = self._apply_overlap(split_sections)
+
+        logger.info(f"最終的なチャンク生成数: {len(final_chunks)}")
+        return final_chunks
+
+    def _split_by_headings(self, soup: BeautifulSoup) -> list[dict]:
+        """見出しタグを基準にHTMLをセクションに分割する"""
+        sections = []
+        current_section = {'title': '冒頭', 'elements': []}
+
+        for element in soup.find_all(True, recursive=False):
+            if element.name in self.heading_tags:
+                # 現在のセクションをリストに追加
+                if current_section['elements']:
+                    sections.append(current_section)
+                
+                # 新しいセクションを開始
+                current_section = {
+                    'title': self._clean_text(element.get_text()),
+                    'elements': [element]
+                }
+            else:
+                current_section['elements'].append(element)
+        
+        # 最後のセクションを追加
+        if current_section['elements']:
+            sections.append(current_section)
+            
+        return sections
+
+    def _combine_short_sections(self, sections: list[dict]) -> list[dict]:
+        """テキスト化し、短すぎるセクションを前のセクションに結合する"""
+        combined_sections = []
+        for section in sections:
+            # HTML要素からテキストを抽出
+            text = self._clean_text(' '.join(el.get_text() for el in section['elements']))
+            
+            # 短すぎて、かつ結合先のセクションが存在する場合
+            if combined_sections and len(text) < self.min_chunk_chars:
+                logger.info(f"セクション '{section['title']}' (文字数: {len(text)}) は短すぎるため、前のセクションに結合します。")
+                combined_sections[-1]['text'] += " " + text
+            elif len(text) >= self.min_chunk_chars:
+                combined_sections.append({'title': section['title'], 'text': text})
+            else:
+                logger.warning(f"セクション '{section['title']}' (文字数: {len(text)}) は短すぎて結合先もないため、スキップします。")
+
+        return combined_sections
+
+    def _split_long_sections(self, sections: list[dict]) -> list[dict]:
+        """最大文字数を超えるセクションを句点「。」で分割する"""
+        final_sections = []
+        for section in sections:
+            text = section['text']
+            if len(text) <= self.max_chunk_chars:
+                final_sections.append(section)
+                continue
+
+            logger.info(f"セクション '{section['title']}' (文字数: {len(text)}) は長すぎるため、分割します。")
+            
+            sentences = text.split('。')
+            current_sub_chunk = ""
+            sub_chunk_count = 0
+
+            for sentence in sentences:
+                if not sentence: continue
+                sentence_with_period = sentence + '。'
+                
+                if len(current_sub_chunk) + len(sentence_with_period) > self.max_chunk_chars:
+                    if current_sub_chunk:
+                        final_sections.append({
+                            'title': f"{section['title']} (パート{sub_chunk_count + 1})",
+                            'text': current_sub_chunk
+                        })
+                        sub_chunk_count += 1
+                    current_sub_chunk = sentence_with_period
+                else:
+                    current_sub_chunk += sentence_with_period
+            
+            if current_sub_chunk:
+                final_sections.append({
+                    'title': f"{section['title']} (パート{sub_chunk_count + 1})",
+                    'text': current_sub_chunk
+                })
+        
+        return final_sections
+
+    def _apply_overlap(self, sections: list[dict]) -> list[dict]:
+        """チャンク間にオーバーラップを追加する"""
+        if not sections:
+            return []
+            
+        overlapped_chunks = []
+        for i in range(len(sections)):
+            current_chunk = sections[i]
+            
+            # 次のチャンクの先頭を現在のチャンクの末尾に追加
+            if i < len(sections) - 1:
+                next_chunk_text = sections[i+1]['text']
+                overlap_text = next_chunk_text[:self.overlap_chars]
+                current_chunk['text'] += " " + overlap_text
+
+            overlapped_chunks.append(current_chunk)
+            
+        return overlapped_chunks

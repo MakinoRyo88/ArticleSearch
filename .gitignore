@@ -1,0 +1,64 @@
+# Exclude everything by default
+/*
+
+# Include only specific directories for monorepo management
+!api/
+!functions/
+!seo-frontend-app/
+
+# Include essential files
+!.gitignore
+!README.md
+
+# Exclude within included directories, but allow directory structure
+api/**/.DS_Store
+functions/**/.DS_Store
+seo-frontend-app/**/.DS_Store
+
+# IDE files
+api/**/.vscode/
+api/**/.idea/
+functions/**/.vscode/
+functions/**/.idea/
+seo-frontend-app/**/.vscode/
+seo-frontend-app/**/.idea/
+
+# Environment files (allow .env.example but exclude actual .env files)
+api/**/.env
+api/**/.env.local
+api/**/.env.production
+api/**/.env.staging
+functions/**/.env
+functions/**/.env.local
+functions/**/.env.production
+functions/**/.env.staging
+seo-frontend-app/**/.env
+seo-frontend-app/**/.env.local
+seo-frontend-app/**/.env.production
+seo-frontend-app/**/.env.staging
+
+# Dependencies
+api/**/node_modules/
+functions/**/node_modules/
+seo-frontend-app/**/node_modules/
+
+# Build outputs
+api/**/build/
+api/**/dist/
+functions/**/build/
+functions/**/dist/
+seo-frontend-app/**/.next/
+seo-frontend-app/**/build/
+seo-frontend-app/**/dist/
+
+# Logs
+api/**/*.log
+functions/**/*.log
+seo-frontend-app/**/*.log
+
+# Python (for Cloud Functions)
+functions/**/__pycache__/
+functions/**/*.py[cod]
+functions/**/*$py.class
+functions/**/.Python
+functions/**/venv/

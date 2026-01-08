@@ -1,0 +1,6 @@
+google-cloud-bigquery==3.11.4
+requests==2.31.0
+beautifulsoup4==4.12.2
+functions-framework==3.5.0
+flask==2.3.3
+gunicorn==21.2.0

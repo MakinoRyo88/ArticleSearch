@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+
+# Node modules (npm ciで再インストールするため)
+node_modules
+
+# Next.js build output (ビルド時に生成されるため)
+.next
+out
+
+# Environment files (Cloud Runの環境変数を使用)
+.env
+.env.local
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+.DS_Store
+*.pem
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation
+README.md
+*.md
+
+# Deployment scripts
+deploy.sh
+cloudbuild.yaml
+Dockerfile
+.dockerignore
